@@ -1,24 +1,32 @@
 <launch>
   <arg name="launch_driver" default="true"/>
-  <arg name="camera_type" default="left"/>
+  <arg name="oak_params_file" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/oak/rgbd.yaml"/>
 
   <group>
     <push-ros-namespace namespace="camera"/>
     <group>
-      <push-ros-namespace namespace="traffic_light"/>
+      <push-ros-namespace namespace="camera0"/>
 
-      <!-- (usb_cam_node is assumed to have launched on logging PC) -->
-      <node pkg="topic_tools" exec="relay" name="tl_camera_info_relay" output="log">
-        <param name="input_topic" value="$(var camera_type)/camera_info"/>
-        <param name="output_topic" value="camera_info"/>
-        <param name="type" value="sensor_msgs/msg/CameraInfo"/>
+      <!-- OAK stereo camera. The namespace must be absolute: the driver builds the rectify target container from it -->
+      <group if="$(var launch_driver)">
+        <include file="$(find-pkg-share depthai_ros_driver)/launch/rgbd_pcl.launch.py">
+          <arg name="namespace" value="/sensing/camera/camera0"/>
+          <arg name="name" value="oak"/>
+          <arg name="parent_frame" value="oak_link"/>
+          <arg name="params_file" value="$(var oak_params_file)"/>
+        </include>
+      </group>
+
+      <!-- Autoware's camera-based perception reads these topics -->
+      <node pkg="topic_tools" exec="relay" name="oak_image_rect_color_relay" output="log">
+        <param name="input_topic" value="oak/rgb/image_rect"/>
+        <param name="output_topic" value="image_rect_color"/>
         <param name="reliability" value="best_effort"/>
       </node>
 
-      <node pkg="topic_tools" exec="relay" name="tl_compressed_image_relay" output="log">
-        <param name="input_topic" value="$(var camera_type)/image_raw/compressed"/>
-        <param name="output_topic" value="image_raw/compressed"/>
-        <param name="type" value="sensor_msgs/msg/CompressedImage"/>
+      <node pkg="topic_tools" exec="relay" name="oak_camera_info_relay" output="log">
+        <param name="input_topic" value="oak/rgb/camera_info"/>
+        <param name="output_topic" value="camera_info"/>
         <param name="reliability" value="best_effort"/>
       </node>
     </group>
