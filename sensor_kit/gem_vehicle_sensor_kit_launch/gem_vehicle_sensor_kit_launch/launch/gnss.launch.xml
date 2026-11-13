@@ -1,38 +1,30 @@
 <launch>
   <arg name="launch_driver" default="true"/>
-  <arg name="gnss_receiver" default="ublox" description="ublox(default) or septentrio"/>
+  <arg name="septentrio_config_file" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/septentrio/ins.yaml"/>
 
   <group>
     <push-ros-namespace namespace="gnss"/>
 
-    <!-- Switch topic name -->
-    <let name="navsatfix_topic_name" value="ublox/nav_sat_fix" if="$(eval &quot;'$(var gnss_receiver)'=='ublox'&quot;)"/>
-    <let name="navsatfix_topic_name" value="septentrio/nav_sat_fix" if="$(eval &quot;'$(var gnss_receiver)'=='septentrio'&quot;)"/>
-    <let name="orientation_topic_name" value="/autoware_orientation"/>
+    <!-- The Septentrio driver publishes absolute topics (/navsatfix, /imu, /atteuler), so the pushed namespace does not move them -->
+    <let name="navsatfix_topic_name" value="/navsatfix"/>
+    <let name="atteuler_topic_name" value="/atteuler"/>
 
-    <!-- Ublox Driver -->
-    <group if="$(eval &quot;'$(var gnss_receiver)'=='ublox'&quot;)">
-      <node pkg="ublox_gps" name="ublox" exec="ublox_gps_node" if="$(var launch_driver)" respawn="true" respawn_delay="1.0">
-        <remap from="~/fix" to="~/nav_sat_fix"/>
-        <param from="$(find-pkg-share ublox_gps)/config/zed_f9p.yaml"/>
-      </node>
+    <!-- Septentrio GNSS/INS driver -->
+    <group if="$(var launch_driver)">
+      <node_container pkg="rclcpp_components" exec="component_container" name="septentrio_gnss_driver_container" namespace="septentrio_gnss_driver" output="screen">
+        <composable_node pkg="septentrio_gnss_driver" plugin="rosaic_node::ROSaicNode" name="septentrio_gnss_driver">
+          <param from="$(var septentrio_config_file)"/>
+        </composable_node>
+      </node_container>
     </group>
 
-    <!-- Septentrio GNSS Driver -->
-    <group if="$(eval &quot;'$(var launch_driver)' and '$(var gnss_receiver)'=='septentrio'&quot;)">
-      <include file="$(find-pkg-share septentrio_gnss_driver)/launch/mosaic_x5_rover.launch.xml"/>
-    </group>
-
-    <!-- NavSatFix to MGRS Pose -->
-    <include file="$(find-pkg-share autoware_gnss_poser)/launch/gnss_poser.launch.xml">
-      <arg name="input_topic_fix" value="$(var navsatfix_topic_name)"/>
-      <arg name="input_topic_orientation" value="$(var orientation_topic_name)"/>
-
-      <arg name="output_topic_gnss_pose" value="pose"/>
-      <arg name="output_topic_gnss_pose_cov" value="pose_with_covariance"/>
-      <arg name="output_topic_gnss_fixed" value="fixed"/>
-
-      <arg name="use_gnss_ins_orientation" value="true"/>
+    <!-- AttEuler heading to GnssInsOrientationStamped, then NavSatFix to MGRS pose -->
+    <include file="$(find-pkg-share autoware_sensing_launch)/launch/gnss_postprocessor.launch.xml">
+      <arg name="input/fix" value="$(var navsatfix_topic_name)"/>
+      <arg name="input/atteuler" value="$(var atteuler_topic_name)"/>
+      <arg name="output/pose" value="pose"/>
+      <arg name="output/pose_with_covariance" value="pose_with_covariance"/>
+      <arg name="output/fixed" value="fixed"/>
     </include>
   </group>
 </launch>
