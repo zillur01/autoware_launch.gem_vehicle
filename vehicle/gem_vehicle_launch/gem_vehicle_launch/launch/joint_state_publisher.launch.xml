@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Steering hinge and wheel states for the GEM e4 model in gem_vehicle_description/urdf/vehicle.xacro -->
+  <node pkg="gem_vehicle_launch" exec="gem_joint_state_publisher.py" name="gem_joint_state_publisher" output="screen"/>
+</launch>

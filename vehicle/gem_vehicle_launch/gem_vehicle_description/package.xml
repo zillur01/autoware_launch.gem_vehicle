@@ -9,6 +9,7 @@
   <license>Apache 2.0 License</license>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
+  <exec_depend>gem_description</exec_depend>
   <exec_depend>xacro</exec_depend>
 
   <export>

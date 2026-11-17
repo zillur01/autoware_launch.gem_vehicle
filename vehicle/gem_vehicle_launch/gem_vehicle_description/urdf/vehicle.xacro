@@ -1,15 +1,135 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <!-- load parameter -->
-  <xacro:property name="vehicle_info" value="${xacro.load_yaml('$(find gem_vehicle_description)/config/vehicle_info.param.yaml')}"/>
+  <!--
+    Polaris GEM e4 vehicle model for Autoware.
 
-  <!-- vehicle body -->
-  <link name="base_link">
+    Meshes and part poses come from gem_description/urdf/e4/gem_e4.urdf.xacro (gem_ws). That model's
+    origin ("gem_body_link" here) is the middle of the wheelbase at wheel-axle height - 0.027 m.
+    Autoware requires base_link at the rear axle center projected onto the ground, so the whole body
+    is attached to base_link with a fixed offset:
+      rear axle in the GEM frame: x = -1.2904, z = 0.027; wheel radius 0.295 -> ground at z = -0.268
+      => base_link -> gem_body_link = (1.2904, 0, 0.268)
+
+    Sensors (Ouster, Livox, cameras, OAK, IMU, GNSS) are NOT defined here; their frames come from
+    gem_vehicle_sensor_kit_description. Only their housings are drawn here as visual-only links.
+
+    Steering hinges and wheels are movable joints. Their state is published on /joint_states by
+    gem_vehicle_launch/gem_joint_state_publisher.py (from the vehicle status topics).
+  -->
+  <xacro:property name="mesh_dir" value="package://gem_description/meshes/e4"/>
+  <xacro:property name="body_x" value="1.2904"/>
+  <xacro:property name="body_z" value="0.268"/>
+
+  <!-- A fixed part with a mesh, attached to gem_body_link with the pose from gem_e4.urdf.xacro -->
+  <xacro:macro name="gem_part" params="name mesh xyz rpy rgba parent:=gem_body_link visual_rpy:='0 0 0'">
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 0" rpy="${visual_rpy}"/>
+        <geometry>
+          <mesh filename="${mesh_dir}/${mesh}"/>
+        </geometry>
+        <material name="${name}_material">
+          <color rgba="${rgba}"/>
+        </material>
+      </visual>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Autoware base_link = rear axle center on the ground.
+       Note - never put a colon followed by a space in comments inside the robot tag, because
+       tier4_vehicle_launch passes the URDF through a YAML parser, which then fails. -->
+  <link name="base_link"/>
+
+  <!-- GEM body (origin of the original gem_e4 model) -->
+  <link name="gem_body_link">
     <visual>
-      <origin xyz="${vehicle_info['/**']['ros__parameters']['wheel_base']/2.0} 0 0" rpy="${pi/2.0} 0 ${pi}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://gem_vehicle_description/mesh/lexus.dae" scale="1 1 1"/>
+        <mesh filename="${mesh_dir}/base_link.STL"/>
       </geometry>
+      <material name="gem_body_material">
+        <color rgba="0 0 1 1"/>
+      </material>
     </visual>
   </link>
+  <joint name="gem_body_joint" type="fixed">
+    <origin xyz="${body_x} 0 ${body_z}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="gem_body_link"/>
+  </joint>
+
+  <!-- racks -->
+  <xacro:gem_part name="top_rack_link" mesh="top_rack_link.STL" xyz="-0.17 0 1.66" rpy="1.5708 0 0" rgba="0 0 0 1"/>
+  <xacro:gem_part name="front_rack_link" mesh="front_rack_link.STL" xyz="1.7594 0 -0.15" rpy="1.5708 0 1.5708" rgba="0 0 0 1"/>
+  <xacro:gem_part name="rear_rack_link" mesh="rear_rack_link.STL" xyz="-1.7372 0 -0.1" rpy="1.5708 0 -1.5708" rgba="0 0 0 1"/>
+
+  <!-- lights -->
+  <xacro:gem_part name="headlight_fr_link" mesh="headlight_fr_link.STL" xyz="1.1677 -0.5 0.765" rpy="0 0 0" rgba="1 1 1 1"/>
+  <xacro:gem_part name="headlight_fl_link" mesh="headlight_fl_link.STL" xyz="1.1677 0.5 0.765" rpy="0 0 0" rgba="1 1 1 1"/>
+  <xacro:gem_part name="turnlight_fl_link" mesh="turnlight_fl_link.STL" xyz="1.1731 0.345 0.765" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+  <xacro:gem_part name="turnlight_fr_link" mesh="turnlight_fr_link.STL" xyz="1.1731 -0.345 0.765" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+  <xacro:gem_part name="lightbar_link" mesh="lightbar_link.STL" xyz="-1.07655 0 0.9449" rpy="-1.9138 0 1.5708" rgba="1 0 0 1"/>
+  <xacro:gem_part name="rear_left_stop_light_link" mesh="stoplight_rl_link.STL" xyz="-1.625 0.38 0.423" rpy="0 0 3.1416" rgba="1 1 1 1"/>
+  <xacro:gem_part name="rear_right_stop_light_link" mesh="stoplight_rr_link.STL" xyz="-1.625 -0.38 0.423" rpy="0 0 3.1416" rgba="1 1 1 1"/>
+  <xacro:gem_part name="taillight_rl_link" mesh="taillight_rl_link.STL" xyz="-1.62 0.32 0.203" rpy="0 0 3.1416" rgba="1 0 0 1"/>
+  <xacro:gem_part name="taillight_rr_link" mesh="taillight_rr_link.STL" xyz="-1.62 -0.32 0.203" rpy="0 0 3.1416" rgba="1 0 0 1"/>
+
+  <!-- logos -->
+  <xacro:gem_part name="i_logo_fl_link" mesh="i_logo_link.STL" xyz="0.3966 0.6695 0.4123" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+  <xacro:gem_part name="i_logo_rl_link" mesh="i_logo_link.STL" xyz="-0.42344 0.6695 0.4123" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+  <xacro:gem_part name="i_logo_fr_link" mesh="i_logo_link.STL" xyz="0.3966 -0.68 0.4123" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+  <xacro:gem_part name="i_logo_rr_link" mesh="i_logo_link.STL" xyz="-0.42344 -0.68 0.4123" rpy="0 0 0" rgba="1 0.6 0.2 1"/>
+
+  <!-- sensor housings (visual only; the sensor frames themselves are in the sensor kit) -->
+  <xacro:gem_part name="gps_antenna_main_link" mesh="gps_antenna_main_link.STL" xyz="-0.01144 0.6525 1.7" rpy="0 0 0" rgba="0.9 0.8 0.9 1"/>
+  <xacro:gem_part name="gps_antenna_aux_link" mesh="gps_antenna_aux_link.STL" xyz="-0.01144 -0.6525 1.7" rpy="0 0 0" rgba="0.9 0.8 0.9 1"/>
+  <xacro:gem_part name="front_radar_link" mesh="front_radar_link.STL" xyz="1.835 0 0.35" rpy="0 0 0" rgba="0.8 0.8 0.9 1"/>
+  <xacro:gem_part name="oak_housing_link" mesh="OAK-D-LR.stl" xyz="0.535 0 1.683" rpy="0 0 0" visual_rpy="1.57 0 1.57" rgba="1 1 1 1"/>
+  <xacro:gem_part name="livox_housing_link" mesh="livox_lidar.STL" xyz="0.4 0 1.78" rpy="0 0.323 0.018" rgba="0.8 0.8 0.9 1"/>
+  <xacro:gem_part name="imu_housing_link" mesh="imu_link.STL" xyz="-0.0044387 0 0.18294" rpy="0 0 0" rgba="0.8 0.8 0.9 1"/>
+
+  <!-- steering hinges (revolute about z) -->
+  <xacro:macro name="gem_steering_hinge" params="side y">
+    <link name="${side}_steering_hinge_link"/>
+    <joint name="${side}_steering_hinge_joint" type="revolute">
+      <origin xyz="1.2746 ${y} 0.027" rpy="0 0 0"/>
+      <parent link="gem_body_link"/>
+      <child link="${side}_steering_hinge_link"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-0.61" upper="0.61" effort="100" velocity="0.5"/>
+    </joint>
+  </xacro:macro>
+  <xacro:gem_steering_hinge side="left" y="0.6545"/>
+  <xacro:gem_steering_hinge side="right" y="-0.6535"/>
+
+  <!-- wheels (continuous about y) -->
+  <xacro:macro name="gem_wheel" params="name mesh parent xyz">
+    <link name="${name}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_dir}/${mesh}"/>
+        </geometry>
+        <material name="${name}_wheel_material">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+    </link>
+    <joint name="${name}_wheel_joint" type="continuous">
+      <origin xyz="${xyz}" rpy="0 0 0"/>
+      <parent link="${parent}"/>
+      <child link="${name}_wheel_link"/>
+      <axis xyz="0 1 0"/>
+      <limit effort="1000" velocity="100.0"/>
+    </joint>
+  </xacro:macro>
+  <xacro:gem_wheel name="front_left" mesh="wheel_link_fl.STL" parent="left_steering_hinge_link" xyz="0 0 0"/>
+  <xacro:gem_wheel name="front_right" mesh="wheel_link_fr.STL" parent="right_steering_hinge_link" xyz="0 0 0"/>
+  <xacro:gem_wheel name="rear_left" mesh="wheel_link_rl.STL" parent="gem_body_link" xyz="-1.2904 0.6545 0.027"/>
+  <xacro:gem_wheel name="rear_right" mesh="wheel_link_rr.STL" parent="gem_body_link" xyz="-1.2904 -0.6535 0.027"/>
 </robot>

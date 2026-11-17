@@ -1,8 +1,11 @@
+# GEM e4 side mirrors in base_link (rear axle center on the ground), measured from
+# gem_description/meshes/e4/base_link.STL: x 2.272..2.367, |y| 0.692..0.883, z 1.21..1.321.
+# Box = mirror extent + ~2-3 cm margin, spanning both mirrors (points inside are removed).
 /**:
   ros__parameters:
-    min_x: 1.8
-    max_x: 3.2
-    min_y: -1.4
-    max_y: 1.4
-    min_z: 0.8
-    max_z: 1.5
+    min_x: 2.25
+    max_x: 2.39
+    min_y: -0.91
+    max_y: 0.91
+    min_z: 1.19
+    max_z: 1.35
