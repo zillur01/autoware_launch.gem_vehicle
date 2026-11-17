@@ -1,0 +1,20 @@
+# Copy of autoware_lidar_transfusion/config/transfusion.param.yaml for standalone rosbag tests.
+# Only difference: densification_world_frame_id is base_link instead of map, so the detector does not
+# depend on a high-rate map->base_link TF (the GEM bags only carry it at ~3 Hz). With
+# densification_num_past_frames: 1 no past frames are fused, so this does not change detections.
+/**:
+  ros__parameters:
+    # network
+    trt_precision: fp16
+    cloud_capacity: 2000000
+    onnx_path: "$(var model_path)/transfusion.onnx"
+    engine_path: "$(var model_path)/transfusion.engine"
+    # pre-process params
+    densification_num_past_frames: 1
+    densification_world_frame_id: base_link
+    # post-process params
+    circle_nms_dist_threshold: 0.5
+    iou_nms_search_distance_2d: 10.0
+    iou_nms_threshold: 0.1
+    yaw_norm_thresholds: [0.3, 0.3, 0.3, 0.3, 0.0]  # refers to the class_names
+    score_threshold: 0.1

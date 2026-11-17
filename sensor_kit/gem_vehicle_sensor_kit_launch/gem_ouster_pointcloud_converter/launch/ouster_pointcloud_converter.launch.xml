@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Standalone converter, e.g. for replaying a rosbag with the raw Ouster cloud -->
+  <arg name="input/pointcloud" default="/ouster/points"/>
+  <arg name="output/pointcloud" default="/ouster/points_ex"/>
+  <arg name="param_path" default="$(find-pkg-share gem_ouster_pointcloud_converter)/config/ouster_pointcloud_converter.param.yaml"/>
+  <arg name="output_frame" default="" description="empty keeps the sensor frame; e.g. base_link to transform the cloud"/>
+
+  <node pkg="gem_ouster_pointcloud_converter" exec="ouster_pointcloud_converter_node" name="ouster_pointcloud_converter" output="screen">
+    <remap from="input" to="$(var input/pointcloud)"/>
+    <remap from="output" to="$(var output/pointcloud)"/>
+    <param from="$(var param_path)"/>
+    <param name="output_frame" value="$(var output_frame)"/>
+  </node>
+</launch>

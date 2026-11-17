@@ -19,6 +19,9 @@ def generate_launch_description():
         'config', 'ouster', 'driver_params.yaml')
 
     params_arg = DeclareLaunchArgument('ouster_params_file', default_value=default_params)
+    # The driver cloud is in the ouster_ros layout, not the Autoware one; it is converted by
+    # gem_ouster_pointcloud_converter before preprocessing.
+    points_topic_arg = DeclareLaunchArgument('points_topic', default_value='pointcloud_raw')
 
     os_driver = LifecycleNode(
         package='ouster_ros',
@@ -26,7 +29,7 @@ def generate_launch_description():
         name='os_driver',
         namespace='',
         parameters=[LaunchConfiguration('ouster_params_file')],
-        remappings=[('points', 'pointcloud_raw_ex')],
+        remappings=[('points', LaunchConfiguration('points_topic'))],
         output='screen',
     )
 
@@ -61,4 +64,4 @@ def generate_launch_description():
         )
     )
 
-    return launch.LaunchDescription([params_arg, os_driver, configure, activate, finalized])
+    return launch.LaunchDescription([params_arg, points_topic_arg, os_driver, configure, activate, finalized])

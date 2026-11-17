@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Standalone TransFusion test on a rosbag with the raw Ouster cloud (not used by the full Autoware pipeline).
+       The cloud is converted to the Autoware layout and transformed to base_link, which is what the model expects. -->
+  <arg name="input/pointcloud" default="/ouster/points"/>
+  <arg name="output/objects" default="/objects"/>
+  <arg name="output_frame" default="base_link"/>
+  <arg name="data_path" default="$(env HOME)/autoware_data/ml_models"/>
+
+  <include file="$(find-pkg-share gem_ouster_pointcloud_converter)/launch/ouster_pointcloud_converter.launch.xml">
+    <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
+    <arg name="output/pointcloud" value="/ouster/points_ex"/>
+    <arg name="output_frame" value="$(var output_frame)"/>
+  </include>
+
+  <include file="$(find-pkg-share autoware_lidar_transfusion)/launch/lidar_transfusion.launch.xml">
+    <arg name="input/pointcloud" value="/ouster/points_ex"/>
+    <arg name="output/objects" value="$(var output/objects)"/>
+    <arg name="data_path" value="$(var data_path)"/>
+    <arg name="model_param_path" value="$(find-pkg-share gem_ouster_pointcloud_converter)/config/transfusion_bag_test.param.yaml"/>
+  </include>
+</launch>

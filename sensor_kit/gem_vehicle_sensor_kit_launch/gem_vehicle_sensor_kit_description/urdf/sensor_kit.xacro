@@ -22,8 +22,9 @@
     <!-- sensor -->
     <xacro:property name="calibration" value="${xacro.load_yaml('$(arg config_dir)/sensor_kit_calibration.yaml')}"/>
 
-    <!-- lidar -->
-    <xacro:OS1_64 parent="sensor_kit_base_link" name="os_sensor" topic_points="/ouster/points" topic_imu="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-3.1415926" max_angle="3.1415926" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26">
+    <!-- lidar: Ouster OS1-128 (128 beams, 1024x10 mode, 45 deg vertical FOV).
+         gem_description only provides the OS1-64 macro/mesh, so it is reused with 128-beam parameters. -->
+    <xacro:OS1_64 parent="sensor_kit_base_link" name="os_sensor" topic_points="/ouster/points" topic_imu="/ouster/imu" hz="10" lasers="128" samples="1024" min_range="0.9" max_range="120.0" noise="0.008" min_angle="-3.1415926" max_angle="3.1415926" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-0.3927" vfov_max="0.3927">
       <origin
         xyz="${calibration['sensor_kit_base_link']['os_sensor']['x']}
              ${calibration['sensor_kit_base_link']['os_sensor']['y']}

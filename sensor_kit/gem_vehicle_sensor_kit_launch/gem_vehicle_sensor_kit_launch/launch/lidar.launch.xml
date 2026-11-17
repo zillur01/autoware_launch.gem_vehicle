@@ -6,12 +6,14 @@
   <arg name="crop_box_filter_self_param_path" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/crop_box_filter_self.param.yaml"/>
   <arg name="crop_box_filter_mirror_param_path" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/crop_box_filter_mirror.param.yaml"/>
   <arg name="ouster_params_file" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/ouster/driver_params.yaml"/>
+  <arg name="ouster_converter_param_path" default="$(find-pkg-share gem_ouster_pointcloud_converter)/config/ouster_pointcloud_converter.param.yaml"/>
+  <arg name="ouster_input_pointcloud" default="pointcloud_raw" description="raw Ouster cloud; use /ouster/points when replaying a bag with launch_driver:=false"/>
   <arg name="livox_config_path" default="$(find-pkg-share gem_vehicle_sensor_kit_launch)/config/livox/HAP_config.json"/>
 
   <group>
     <push-ros-namespace namespace="lidar"/>
 
-    <!-- Top: Ouster OS1-64 (sensor_hostname and frames are set in config/ouster/driver_params.yaml) -->
+    <!-- Top: Ouster OS1-128 (sensor_hostname and frames are set in config/ouster/driver_params.yaml) -->
     <group>
       <push-ros-namespace namespace="top"/>
       <let name="target_container" value="/sensing/lidar/top/pointcloud_preprocessor/pointcloud_container"/>
@@ -22,16 +24,30 @@
         <arg name="use_multithread" value="true"/>
       </include>
 
+      <!-- Driver publishes the ouster_ros "original" cloud on /sensing/lidar/top/pointcloud_raw -->
       <group if="$(var launch_driver)">
         <include file="$(find-pkg-share gem_vehicle_sensor_kit_launch)/launch/ouster_driver.launch.py">
           <arg name="ouster_params_file" value="$(var ouster_params_file)"/>
+          <arg name="points_topic" value="pointcloud_raw"/>
         </include>
       </group>
 
-      <!-- Crop boxes only: the distortion corrector and ring outlier filter need the Autoware point layout (channel, azimuth, distance, ...), which the Ouster driver does not publish -->
-      <include file="$(find-pkg-share autoware_sensing_launch)/launch/pointcloud_crop_boxes.launch.xml">
+      <!-- Ouster layout -> Autoware PointXYZIRCAEDT layout (pointcloud_raw -> pointcloud_raw_ex) -->
+      <load_composable_node target="$(var target_container)">
+        <composable_node pkg="gem_ouster_pointcloud_converter" plugin="gem_ouster_pointcloud_converter::OusterPointCloudConverter" name="ouster_pointcloud_converter">
+          <remap from="input" to="$(var ouster_input_pointcloud)"/>
+          <remap from="output" to="pointcloud_raw_ex"/>
+          <param from="$(var ouster_converter_param_path)"/>
+          <extra_arg name="use_intra_process_comms" value="true"/>
+        </composable_node>
+      </load_composable_node>
+
+      <!-- Full preprocessing: crop boxes -> distortion corrector -> ring outlier filter -->
+      <include file="$(find-pkg-share autoware_sensing_launch)/launch/pointcloud_preprocessor_cpu.launch.xml">
         <arg name="target_container" value="$(var target_container)"/>
+        <arg name="frame_id" value="os_lidar"/>
         <arg name="use_intra_process" value="true"/>
+        <arg name="input/pointcloud" value="pointcloud_raw_ex"/>
         <arg name="output/pointcloud" value="pointcloud_before_sync"/>
         <arg name="crop_box_filter_self_param_path" value="$(var crop_box_filter_self_param_path)"/>
         <arg name="crop_box_filter_secondary_param_path" value="$(var crop_box_filter_mirror_param_path)"/>

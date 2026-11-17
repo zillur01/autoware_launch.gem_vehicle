@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    # Which Ouster field becomes the Autoware uint8 intensity:
+    #   reflectivity: calibrated 0-255 target reflectivity (recommended, closest to Velodyne/Hesai intensity)
+    #   intensity:    raw signal photon count (clamped to 0-255)
+    intensity_source: reflectivity
+    intensity_scale: 1.0
+    # Points closer than / farther than these distances [m] are dropped. Points without a return (range == 0) are always dropped.
+    min_distance: 0.0
+    max_distance: 1000.0
+    # Empty keeps the sensor frame (required inside the sensor kit pipeline: the preprocessor handles frames).
+    output_frame: ""
